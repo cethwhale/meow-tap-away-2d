@@ -1,0 +1,30 @@
+# Android Studio / IntelliJ
+.idea/
+*.iml
+local.properties
+
+# Gradle / Kotlin caches and local runtimes
+.gradle/
+.gradle-local/
+.kotlin/
+.gradle-dist.zip
+
+# Build outputs
+build/
+app/build/
+**/build/
+*.apk
+*.aab
+
+# Signing credentials
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.tmp
