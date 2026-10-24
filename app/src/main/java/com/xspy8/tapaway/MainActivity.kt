@@ -830,3 +830,42 @@ private fun ArrowBoard(arrows: List<ArrowLine>, movingId: Int?, queuedId: Int?, 
         badge?.let { Box(Modifier.align(Alignment.TopEnd).size(21.dp).clip(CircleShape).background(Color(0xFF2998EE)), contentAlignment = Alignment.Center) { Text(it, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold) } }
     }
 }
+// AdMob Interstitial Ad Integration
+private var interstitialAd: com.google.android.gms.ads.interstitial.InterstitialAd? = null
+
+private fun loadInterstitialAd(context: android.content.Context) {
+    val adRequest = com.google.android.gms.ads.AdRequest.Builder().build()
+    com.google.android.gms.ads.interstitial.InterstitialAd.load(
+        context,
+        "ca-app-pub-7664427102906771/6690346986",
+        adRequest,
+        object : com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback() {
+            override fun onAdLoaded(ad: com.google.android.gms.ads.interstitial.InterstitialAd) {
+                interstitialAd = ad
+            }
+            override fun onAdFailedToLoad(adError: com.google.android.gms.ads.LoadAdError) {
+                interstitialAd = null
+            }
+        }
+    )
+}
+
+private fun showInterstitialAd(activity: android.app.Activity, onAdDismissed: () -> Unit) {
+    if (interstitialAd != null) {
+        interstitialAd?.fullScreenContentCallback = object : com.google.android.gms.ads.FullScreenContentCallback() {
+            override fun onAdDismissedFullScreenContent() {
+                interstitialAd = null
+                onAdDismissed()
+                loadInterstitialAd(activity)
+            }
+            override fun onAdFailedToShowFullScreenContent(adError: com.google.android.gms.ads.AdError) {
+                interstitialAd = null
+                onAdDismissed()
+            }
+        }
+        interstitialAd?.show(activity)
+    } else {
+        onAdDismissed()
+        loadInterstitialAd(activity)
+    }
+}
