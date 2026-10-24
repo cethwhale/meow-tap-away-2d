@@ -7,6 +7,9 @@
         android:label="Meow Tap Away 2D"
         android:theme="@style/Theme.TapAway"
         android:supportsRtl="true">
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-7664427102906771~4012212755"/>
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait"
