@@ -3,7 +3,6 @@ package com.xspy8.tapaway
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,7 +28,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Initialize AdMob and load the Interstitial ad
         MobileAds.initialize(this) {}
         loadInterstitialAd()
 
@@ -70,14 +68,13 @@ class MainActivity : ComponentActivity() {
     private fun showInterstitial() {
         if (mInterstitialAd != null) {
             mInterstitialAd?.show(this)
-            loadInterstitialAd() // Reload for the next level
+            loadInterstitialAd()
         } else {
             loadInterstitialAd()
         }
     }
 }
 
-// Data class representing an arrow block in the puzzle grid
 data class PuzzleArrow(val id: Int, val direction: String, var isCleared: Boolean)
 
 @Composable
@@ -86,7 +83,6 @@ fun GogoBlastGameRoot(onLevelComplete: () -> Unit) {
     var score by remember { mutableStateOf(1) }
     var isLevelWon by remember { mutableStateOf(false) }
 
-    // Initial interactive arrows for the puzzle grid
     var arrows by remember(level) {
         mutableStateOf(
             listOf(
@@ -114,7 +110,6 @@ fun GogoBlastGameRoot(onLevelComplete: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),
-            horizontalAlignment = Alignment.CenterVertically,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(text = "👑 x$score", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.DarkGray)
@@ -125,7 +120,6 @@ fun GogoBlastGameRoot(onLevelComplete: () -> Unit) {
         }
 
         if (!isLevelWon) {
-            // Gameplay View
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -140,7 +134,6 @@ fun GogoBlastGameRoot(onLevelComplete: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 
-                // Progress Bar
                 LinearProgressIndicator(
                     progress = { progressPercent / 100f },
                     modifier = Modifier
@@ -152,7 +145,6 @@ fun GogoBlastGameRoot(onLevelComplete: () -> Unit) {
                 )
             }
 
-            // Puzzle Grid Box
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -178,11 +170,10 @@ fun GogoBlastGameRoot(onLevelComplete: () -> Unit) {
                                             arrows = arrows.map {
                                                 if (it.id == arrow.id) it.copy(isCleared = true) else it
                                             }
-                                            // Check if all arrows are cleared
                                             if (arrows.all { a -> a.isCleared }) {
                                                 isLevelWon = true
                                                 score += 1
-                                                onLevelComplete() // Triggers AdMob Interstitial Ad!
+                                                onLevelComplete()
                                             }
                                         },
                                     color = Color.White,
@@ -202,7 +193,6 @@ fun GogoBlastGameRoot(onLevelComplete: () -> Unit) {
                 }
             }
         } else {
-            // Win / Level Complete Screen (Matching your reference video layout)
             Column(
                 modifier = Modifier
                     .weight(1f)
