@@ -4,12 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,7 +29,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Initialize AdMob and load ad
+        // Initialize AdMob and load the Interstitial ad
         MobileAds.initialize(this) {}
         loadInterstitialAd()
 
@@ -37,7 +39,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color(0xFFF8F9FE)
                 ) {
-                    GogoBlastGameScreen(
+                    GogoBlastGameRoot(
                         onLevelComplete = {
                             showInterstitial()
                         }
@@ -68,89 +70,176 @@ class MainActivity : ComponentActivity() {
     private fun showInterstitial() {
         if (mInterstitialAd != null) {
             mInterstitialAd?.show(this)
-            // Reload the next ad for future use
-            loadInterstitialAd()
+            loadInterstitialAd() // Reload for the next level
         } else {
             loadInterstitialAd()
         }
     }
 }
 
+// Data class representing an arrow block in the puzzle grid
+data class PuzzleArrow(val id: Int, val direction: String, var isCleared: Boolean)
+
 @Composable
-fun GogoBlastGameScreen(onLevelComplete: () -> Unit) {
+fun GogoBlastGameRoot(onLevelComplete: () -> Unit) {
     var level by remember { mutableStateOf(3) }
     var score by remember { mutableStateOf(1) }
-    var isCompleted by remember { mutableStateOf(false) }
+    var isLevelWon by remember { mutableStateOf(false) }
+
+    // Initial interactive arrows for the puzzle grid
+    var arrows by remember(level) {
+        mutableStateOf(
+            listOf(
+                PuzzleArrow(1, "⬆️", false),
+                PuzzleArrow(2, "➡️", false),
+                PuzzleArrow(3, "⬇️", false),
+                PuzzleArrow(4, "⬅️", false)
+            )
+        )
+    }
+
+    val totalArrows = arrows.size
+    val clearedCount = arrows.count { it.isCleared }
+    val progressPercent = if (totalArrows > 0) (clearedCount * 100) / totalArrows else 0
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Top Bar
+        // Top Header Bar
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            horizontalAlignment = Alignment.CenterVertically,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "👑 x$score", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(text = "👑 x$score", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.DarkGray)
+            Spacer(modifier = Modifier.weight(1f))
             Text(text = "GOGO! BLAST", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF3F51B5))
-            Text(text = "⚙️", fontSize = 20.sp)
+            Spacer(modifier = Modifier.weight(1f))
+            Text(text = "⚙️", fontSize = 18.sp)
         }
 
-        // Game Board Area
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            if (!isCompleted) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "Level $level", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Text(text = "Tap the button below to clear the level!", fontSize = 14.sp, color = Color.Gray)
-                    Spacer(modifier = Modifier.height(30.dp))
-                    
-                    Button(
-                        onClick = {
-                            isCompleted = true
-                            score += 1
-                            onLevelComplete() // Triggers the AdMob Interstitial Ad!
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F51B5)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(text = "Clear Level", fontSize = 18.sp, color = Color.White, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-                    }
+        if (!isLevelWon) {
+            // Gameplay View
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "Level $level", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
+                    Text(text = "$progressPercent%", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3F51B5))
                 }
-            } else {
-                // Level Complete Screen (like the video)
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Progress Bar
+                LinearProgressIndicator(
+                    progress = { progressPercent / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = Color(0xFF3F51B5),
+                    trackColor = Color(0xFFE0E0E0),
+                )
+            }
+
+            // Puzzle Grid Box
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(vertical = 24.dp),
+                contentAlignment = Alignment.Center
+            ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFFF8F9FE))
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(text = "🏆", fontSize = 60.sp)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "Well done!", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3F51B5))
-                    Text(text = "Level $level Complete", fontSize = 18.sp, color = Color.Gray)
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Text(text = "Tap the arrows to clear the board!", fontSize = 14.sp, color = Color.Gray)
                     
-                    Button(
-                        onClick = {
-                            level += 1
-                            isCompleted = false
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F51B5)),
-                        shape = RoundedCornerShape(12.dp)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(text = "Level $level", fontSize = 18.sp, color = Color.White, modifier = Modifier.padding(horizontal = 24.dp, vertical = 10.dp))
+                        arrows.forEach { arrow ->
+                            if (!arrow.isCleared) {
+                                Surface(
+                                    modifier = Modifier
+                                        .size(64.dp)
+                                        .clickable {
+                                            arrows = arrows.map {
+                                                if (it.id == arrow.id) it.copy(isCleared = true) else it
+                                            }
+                                            // Check if all arrows are cleared
+                                            if (arrows.all { a -> a.isCleared }) {
+                                                isLevelWon = true
+                                                score += 1
+                                                onLevelComplete() // Triggers AdMob Interstitial Ad!
+                                            }
+                                        },
+                                    color = Color.White,
+                                    shape = RoundedCornerShape(14.dp),
+                                    shadowElevation = 4.dp
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(text = arrow.direction, fontSize = 28.sp)
+                                    }
+                                }
+                            }
+                        }
                     }
+                }
+            }
+        } else {
+            // Win / Level Complete Screen (Matching your reference video layout)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Surface(
+                    modifier = Modifier.size(80.dp),
+                    shape = RoundedCornerShape(40.dp),
+                    color = Color(0xFFFFF8E1),
+                    shadowElevation = 2.dp
+                ) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = "🏆", fontSize = 40.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(text = "Well done!", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3F51B5))
+                Text(text = "Level $level Complete", fontSize = 16.sp, color = Color.Gray)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(text = "IQ: 110", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFA000))
+                
+                Spacer(modifier = Modifier.height(40.dp))
+
+                Button(
+                    onClick = {
+                        level += 1
+                        isLevelWon = false
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F51B5)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(text = "Level $level", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         }
